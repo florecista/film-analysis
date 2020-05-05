@@ -1,9 +1,14 @@
 
 import urllib.request
+import os
 from bs4 import BeautifulSoup
 import re
 import networkx as nx
+import numpy as np
 import matplotlib.pyplot as plt
+from nltk_opennlp.chunkers import OpenNLPChunker, OpenNERChunker, OpenNERChunkerMulti
+from nltk_opennlp.taggers import OpenNLPTagger
+import configparser
 
 class SplitChunk:
     def __init__(self, name, dialog, narrative):
@@ -13,14 +18,13 @@ class SplitChunk:
 
 class test_urllib():
 
-    def read_url(self):
-        movie_url = 'https://www.imsdb.com/scripts/Platoon.html'
+    def read_html_from_website(self):
+        movie_url = 'http://www.imsdb.com/scripts/Platoon.html'
 
         try:
             request = urllib.request.Request(movie_url)
             webpage_bytes = urllib.request.urlopen(request)
             soup = BeautifulSoup(webpage_bytes, 'lxml')
-            is_webpage_fetched = True
         except urllib.error.URLError as err:
             print('Catched an URLError while fetching the URL:', err)
             print()
@@ -35,13 +39,17 @@ class test_urllib():
 
         return soup
 
+    def read_html_from_file(self):
+        soup = BeautifulSoup(open("Platoon.html"), "lxml")
+        return soup
+
     def stripHTML(self, soup):
         pre = soup.findAll('pre')[1]
         string = str(pre)
         return string
 
     def isValidName(self, name):
-        stoplist = ["omit","dissovle","fade","ext","int","day","...","cut","close","med","-","shot"]
+        stoplist = ["omit","dissovle","fade","ext","int","day","...","cut","close","med","-","shot", "it", "up","shoot","get","back","here"]
         nameLowerCase = str(name).lower()
         if any(element in nameLowerCase for element in stoplist):
             return False
@@ -66,6 +74,23 @@ class test_urllib():
 
         return G
 
+    def getNames(self, list):
+        names = []
+        for splitchunk in list:
+            if not self.isValidName(splitchunk.name):
+                continue
+            names.append(splitchunk.name)
+
+        return names
+
+    def getNamesUnique(self, list):
+        x = np.array(list)
+        return np.unique(x).tolist()
+
+    def getNamesAsString(self, list):
+        names = ' '.join(list)
+        return names
+
     def parse(self, content):
         list_ = []
         chunks = content.split("<b>")
@@ -87,18 +112,76 @@ class test_urllib():
                     dialog = list_b[0].replace("\n",'').strip()
                     narrative = ""
 
+            # ugly but needed
+            if " " in name and "(" in name:
+                tokens = name.split()
+                name = tokens[0]
+
             new_splitchunk = SplitChunk(name, dialog, narrative)
             list_.append(new_splitchunk)
         return list_
 
+    def opennlp_test(self, content):
+        config = configparser.ConfigParser()
+        config.read('settings.ini')
+
+        opennlp_dir = config['options']['opennlp_dir']
+        models_dir = config['options']['models_dir']
+
+        language = 'en'
+        tt = OpenNLPTagger(language=language,
+                           path_to_bin=os.path.join(opennlp_dir, 'bin'),
+                           path_to_model=os.path.join(models_dir, 'en-pos-maxent.bin'))
+        phrase = content
+        sentence = tt.tag(phrase)
+        cp = OpenNERChunker(path_to_bin=os.path.join(opennlp_dir, 'bin'),
+                            path_to_chunker=os.path.join(models_dir,
+                                                         '{}-chunker.bin'.format(language)),
+                            path_to_ner_model=os.path.join(models_dir,
+                                                           '{}-ner-person.bin'.format(language)))
+        tree = cp.parse(sentence)
+
+        print(tree)
+
+    def showGraph(self, list):
+        graph = self.constructGraph(list)
+        nx.spring_layout(graph, k=0.15, iterations=20)
+
+        plt.figure(3, figsize=(12, 8))
+        nx.draw_networkx(graph)
+
+        plt.show()
+
 def main():
     app = test_urllib()
-    soup = app.read_url()
+
+    # 1. Get HTML
+    #soup = app.read_html_from_website()
+    soup = app.read_html_from_file()
+
+    # 2. Strip out unnecessary tags
     strippedcontent = app.stripHTML(soup)
+
+    # 3. Parse HTML for list of Chunks
     list = app.parse(strippedcontent)
-    graph = app.constructGraph(list)
-    nx.draw_networkx(graph)
-    plt.show()
+
+    # 4. Get list of names from Chunks
+    names = app.getNames(list)
+    print(len(names))
+
+    # 5. Make list of names unique
+    uniqueListOfNames = app.getNamesUnique(names)
+    print(len(uniqueListOfNames))
+
+    # 6. Make a single string of names for OpenNLP to analyze
+    #namesString = app.getNamesAsString(uniqueListOfNames)
+    namesString = app.getNamesAsString(names)
+
+    # 7. Run OpenNLP over string of names to analyze what are actual names
+    app.opennlp_test(namesString)
+
+    # 8. Add names to graph for visualization
+    app.showGraph(list)
 
 if __name__ == "__main__":
     main()
