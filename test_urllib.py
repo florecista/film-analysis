@@ -58,11 +58,11 @@ class test_urllib():
 
         return True
 
-    def constructGraph(self, list):
+    def constructGraph(self, list_):
         G = nx.Graph()
 
         previous = ""
-        for splitchunk in list:
+        for splitchunk in list_:
             if not self.isValidName(splitchunk.name):
                 previous = ""
                 continue
@@ -74,21 +74,21 @@ class test_urllib():
 
         return G
 
-    def getNames(self, list):
+    def getNames(self, list_):
         names = []
-        for splitchunk in list:
+        for splitchunk in list_:
             if not self.isValidName(splitchunk.name):
                 continue
             names.append(splitchunk.name)
 
         return names
 
-    def getNamesUnique(self, list):
-        x = np.array(list)
+    def getNamesUnique(self, list_):
+        x = np.array(list_)
         return np.unique(x).tolist()
 
-    def getNamesAsString(self, list):
-        names = ' '.join(list)
+    def getNamesAsString(self, list_):
+        names = ' '.join(list_)
         return names
 
     def parse(self, content):
@@ -122,9 +122,11 @@ class test_urllib():
         return list_
 
     def opennlp_test(self, content):
+        names = []
+
         config = configparser.ConfigParser()
         config.read('settings.ini')
-
+        
         opennlp_dir = config['options']['opennlp_dir']
         models_dir = config['options']['models_dir']
 
@@ -134,6 +136,10 @@ class test_urllib():
                            path_to_model=os.path.join(models_dir, 'en-pos-maxent.bin'))
         phrase = content
         sentence = tt.tag(phrase)
+
+        for val in sentence:
+            names.append(val[0])
+
         cp = OpenNERChunker(path_to_bin=os.path.join(opennlp_dir, 'bin'),
                             path_to_chunker=os.path.join(models_dir,
                                                          '{}-chunker.bin'.format(language)),
@@ -141,10 +147,10 @@ class test_urllib():
                                                            '{}-ner-person.bin'.format(language)))
         tree = cp.parse(sentence)
 
-        print(tree)
+        return names
 
-    def showGraph(self, list):
-        graph = self.constructGraph(list)
+    def showGraph(self, list_):
+        graph = self.constructGraph(list_)
         nx.spring_layout(graph, k=0.15, iterations=20)
 
         plt.figure(3, figsize=(12, 8))
@@ -163,25 +169,30 @@ def main():
     strippedcontent = app.stripHTML(soup)
 
     # 3. Parse HTML for list of Chunks
-    list = app.parse(strippedcontent)
+    list_ = app.parse(strippedcontent)
 
     # 4. Get list of names from Chunks
-    names = app.getNames(list)
-    print(len(names))
+    names = app.getNames(list_)
+    print('#1 - ' + str(len(names)))
 
     # 5. Make list of names unique
     uniqueListOfNames = app.getNamesUnique(names)
-    print(len(uniqueListOfNames))
+    print('#2 - ' + str(len(uniqueListOfNames)))
 
     # 6. Make a single string of names for OpenNLP to analyze
-    #namesString = app.getNamesAsString(uniqueListOfNames)
+    uniqueNamesString = app.getNamesAsString(uniqueListOfNames)
     namesString = app.getNamesAsString(names)
 
     # 7. Run OpenNLP over string of names to analyze what are actual names
-    app.opennlp_test(namesString)
+    test = app.opennlp_test(uniqueNamesString)
+    print('#3 - ' + str(len(test)))
+    morenames = app.opennlp_test(namesString)
+    print('#4 - ' + str(len(morenames)))
+    uniqueMoreNames = app.getNamesUnique(morenames)
+    print('#5 - ' + str(len(uniqueMoreNames)))
 
     # 8. Add names to graph for visualization
-    app.showGraph(list)
+    #app.showGraph(list_)
 
 if __name__ == "__main__":
     main()
