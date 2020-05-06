@@ -67,48 +67,26 @@ class Utils:
         return list_
 
 class NameFinder(ABC):
-    """
-    The Creator class declares the factory method that is supposed to return an
-    object of a Product class. The Creator's subclasses usually provide the
-    implementation of this method.
-    """
 
     @abstractmethod
     def factory_method(self):
-        """
-        Note that the Creator may also provide some default implementation of
-        the factory method.
-        """
         pass
 
     def get_names(self, list_) -> list:
-        """
-        Also note that, despite its name, the Creator's primary responsibility
-        is not creating products. Usually, it contains some core business logic
-        that relies on Product objects, returned by the factory method.
-        Subclasses can indirectly change that business logic by overriding the
-        factory method and returning a different type of product from it.
-        """
 
-        # Call the factory method to create a Product object.
-        product = self.factory_method()
+        name_finder = self.factory_method()
 
-        # Now, use the product.
-        result = "Creator: The same creator's code has just worked with {product.get_names()}"
+        # Now, use the name_finder.
+        result = "Creator: The same creator's code has just worked with {name_finder.get_names()}"
 
         return result
 
 
 class Names(ABC):
-    """
-    The Product interface declares the operations that all concrete products
-    must implement.
-    """
 
     @abstractmethod
     def get_names(self, list_) -> list:
         pass
-
 
 class TextNameFinderImpl(Names):
     def get_names(self, list_) -> list:
@@ -167,11 +145,6 @@ class OpenNLPNameFinderImpl(Names):
 
 
 class TextNameFinder(NameFinder):
-    """
-    Note that the signature of the method still uses the abstract product type,
-    even though the concrete product is actually returned from the method. This
-    way the Creator can stay independent of concrete product classes.
-    """
 
     def factory_method(self) -> TextNameFinderImpl:
         return TextNameFinderImpl()
@@ -194,12 +167,7 @@ def client_code(creator: NameFinder) -> None:
     uniqueListOfNames = np.unique(x).tolist()
     print('#2 - ' + str(len(uniqueListOfNames)))
 
-    print("Client: I'm not aware of the creator's class, but it still works.\n"
-          "{creator.get_names(list_)}", end="")
-
-
 if __name__ == "__main__":
-
 
     print("App: Launched with the TextNameFinderImpl.")
     client_code(TextNameFinderImpl())
