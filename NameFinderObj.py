@@ -88,6 +88,12 @@ class Names(ABC):
     def get_names(self, list_) -> list:
         pass
 
+class StanfordNERNameFinderImpl(Names):
+    def get_names(self, list_) -> list:
+        names = []
+        # TODO
+        return names
+
 class TextNameFinderImpl(Names):
     def get_names(self, list_) -> list:
         names = []
@@ -98,7 +104,6 @@ class TextNameFinderImpl(Names):
             names.append(splitchunk.name)
 
         return names
-
 
 class OpenNLPNameFinderImpl(Names):
     def get_names(self, list_) -> list:
@@ -143,12 +148,15 @@ class OpenNLPNameFinderImpl(Names):
 
         return names
 
+class StanfordNERNameFinder(NameFinder):
+
+    def factory_method(self) -> StanfordNERNameFinderImpl:
+        return StanfordNERNameFinderImpl()
 
 class TextNameFinder(NameFinder):
 
     def factory_method(self) -> TextNameFinderImpl:
         return TextNameFinderImpl()
-
 
 class OpenNLPNameFinder(NameFinder):
     def factory_method(self) -> OpenNLPNameFinderImpl:
@@ -171,7 +179,9 @@ if __name__ == "__main__":
 
     print("App: Launched with the TextNameFinderImpl.")
     client_code(TextNameFinderImpl())
-    print("\n")
 
     print("App: Launched with the OpenNLPNameFinderImpl.")
     client_code(OpenNLPNameFinderImpl())
+
+    print("App: Launched with the StandordNERNameFinderImpl.")
+    client_code(StanfordNERNameFinderImpl())
