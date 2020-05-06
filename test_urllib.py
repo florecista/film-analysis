@@ -6,7 +6,8 @@ import re
 import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
-from nltk_opennlp.chunkers import OpenNLPChunker, OpenNERChunker, OpenNERChunkerMulti
+
+from nltk_opennlp.chunkers import OpenNERChunker
 from nltk_opennlp.taggers import OpenNLPTagger
 import configparser
 
@@ -134,18 +135,23 @@ class test_urllib():
         tt = OpenNLPTagger(language=language,
                            path_to_bin=os.path.join(opennlp_dir, 'bin'),
                            path_to_model=os.path.join(models_dir, 'en-pos-maxent.bin'))
-        phrase = content
+        phrase = str(content)
         sentence = tt.tag(phrase)
-
-        for val in sentence:
-            names.append(val[0])
-
         cp = OpenNERChunker(path_to_bin=os.path.join(opennlp_dir, 'bin'),
                             path_to_chunker=os.path.join(models_dir,
                                                          '{}-chunker.bin'.format(language)),
                             path_to_ner_model=os.path.join(models_dir,
                                                            '{}-ner-person.bin'.format(language)))
+
         tree = cp.parse(sentence)
+
+        for st in tree.subtrees(filter=lambda x: x.label() == "NP" or x.label() == 'NNP'):
+            leaves = st.leaves()
+            if isinstance(leaves, list):
+                for leaf in leaves:
+                    if isinstance(leaf, tuple):
+                        if 'NNP' in leaf[1]:
+                            names.append(leaf[0])
 
         return names
 
@@ -172,26 +178,20 @@ def main():
     list_ = app.parse(strippedcontent)
 
     # 4. Get list of names from Chunks
+    print('Text Parsing for names')
     names = app.getNames(list_)
     print('#1 - ' + str(len(names)))
-
-    # 5. Make list of names unique
     uniqueListOfNames = app.getNamesUnique(names)
     print('#2 - ' + str(len(uniqueListOfNames)))
 
-    # 6. Make a single string of names for OpenNLP to analyze
-    uniqueNamesString = app.getNamesAsString(uniqueListOfNames)
-    namesString = app.getNamesAsString(names)
+    # 5. Get list of names from OpenNLP, based off previous parsed list of names
+    print('OpenNLP Parsing for names')
+    namesFromOpenNLP = app.opennlp_test(app.getNamesAsString(names))
+    print('#3 - ' + str(len(namesFromOpenNLP)))
+    uniqueListOfNamesFromOpenNLP = app.getNamesUnique(namesFromOpenNLP)
+    print('#4 - ' + str(len(uniqueListOfNamesFromOpenNLP)))
 
-    # 7. Run OpenNLP over string of names to analyze what are actual names
-    test = app.opennlp_test(uniqueNamesString)
-    print('#3 - ' + str(len(test)))
-    morenames = app.opennlp_test(namesString)
-    print('#4 - ' + str(len(morenames)))
-    uniqueMoreNames = app.getNamesUnique(morenames)
-    print('#5 - ' + str(len(uniqueMoreNames)))
-
-    # 8. Add names to graph for visualization
+    # 6. Add names to graph for visualization
     #app.showGraph(list_)
 
 if __name__ == "__main__":
