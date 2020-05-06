@@ -192,7 +192,7 @@ def main():
     print('#4 - ' + str(len(uniqueListOfNamesFromOpenNLP)))
 
     # 6. Add names to graph for visualization
-    #app.showGraph(list_)
+    app.showGraph(list_)
 
 if __name__ == "__main__":
     main()
