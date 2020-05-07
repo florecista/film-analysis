@@ -8,8 +8,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from nltk_opennlp.chunkers import OpenNERChunker
+
 from nltk_opennlp.taggers import OpenNLPTagger
 import configparser
+
+import nltk
+from nltk.corpus import names 
+nltk.download('names')
 
 class SplitChunk:
     def __init__(self, name, dialog, narrative):
@@ -51,6 +56,7 @@ class test_urllib():
 
     def isValidName(self, name):
         stoplist = ["omit","dissovle","fade","ext","int","day","...","cut","close","med","-","shot", "it", "up","shoot","get","back","here"]
+                
         nameLowerCase = str(name).lower()
         if any(element in nameLowerCase for element in stoplist):
             return False
@@ -69,12 +75,7 @@ class test_urllib():
                 continue
             current = splitchunk.name
             if previous != "" and previous != current:
-
-                # TODO - add sentiment analysis
-                # analyze relationship between previous and current
-                # sentiment = getSentiment(splitchunk.dialog)
-                # G.add_edge(previous, current, sentiment)
-
+                relationship = 0.0
                 G.add_edge(previous, current)
             previous = current
 
@@ -97,6 +98,22 @@ class test_urllib():
         names = ' '.join(list_)
         return names
 
+    def getValidNames(self, sentence):
+        list_ =[]
+        names_ = []
+        name_set = set(names.words()) 
+        for word,tag in sentence:
+            for h in name_set:
+                if word.upper() == h.upper():
+                    list_.append((word,tag))
+                    break
+                
+        for el in list_:
+            if el[1] in ['NNP','NP']:
+                names_.append(el[0])
+
+        return names_
+    
     def parse(self, content):
         list_ = []
         chunks = content.split("<b>")
@@ -122,14 +139,16 @@ class test_urllib():
             if " " in name and "(" in name:
                 tokens = name.split()
                 name = tokens[0]
-
+            
             new_splitchunk = SplitChunk(name, dialog, narrative)
             list_.append(new_splitchunk)
         return list_
 
     def opennlp_test(self, content):
+        
         names = []
-
+        
+        
         config = configparser.ConfigParser()
         config.read('settings.ini')
         
@@ -142,6 +161,7 @@ class test_urllib():
                            path_to_model=os.path.join(models_dir, 'en-pos-maxent.bin'))
         phrase = str(content)
         sentence = tt.tag(phrase)
+              
         cp = OpenNERChunker(path_to_bin=os.path.join(opennlp_dir, 'bin'),
                             path_to_chunker=os.path.join(models_dir,
                                                          '{}-chunker.bin'.format(language)),
@@ -150,14 +170,17 @@ class test_urllib():
 
         tree = cp.parse(sentence)
 
-        for st in tree.subtrees(filter=lambda x: x.label() == "NP" or x.label() == 'NNP'):
-            leaves = st.leaves()
-            if isinstance(leaves, list):
-                for leaf in leaves:
-                    if isinstance(leaf, tuple):
-                        if 'NNP' in leaf[1]:
-                            names.append(leaf[0])
+##        for st in tree.subtrees(filter=lambda x: x.label() == "NP" or x.label() == 'NNP'):
+##            leaves = st.leaves()
+##            if isinstance(leaves, list):
+##                for leaf in leaves:
+##                    if isinstance(leaf, tuple):
+##                        if 'NNP' in leaf[1]:
+##                         names.append(leaf[0])
 
+        names = self.getValidNames(sentence)
+        print(names)
+        
         return names
 
     def showGraph(self, list_):
