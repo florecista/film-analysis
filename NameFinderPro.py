@@ -75,7 +75,11 @@ class test_urllib():
                 continue
             current = splitchunk.name
             if previous != "" and previous != current:
-                relationship = 0.0
+
+                # analyze relationship between previous and current
+                # sentiment = getSentiment(splitchunk.dialog)
+                # G.add_edge(previous, current, sentiment)
+
                 G.add_edge(previous, current)
             previous = current
 
