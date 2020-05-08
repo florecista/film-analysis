@@ -7,8 +7,6 @@ import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 
-from nltk_opennlp.chunkers import OpenNERChunker
-
 from nltk_opennlp.taggers import OpenNLPTagger
 import configparser
 
@@ -149,10 +147,6 @@ class test_urllib():
         return list_
 
     def opennlp_test(self, content):
-        
-        names = []
-        
-        
         config = configparser.ConfigParser()
         config.read('settings.ini')
         
@@ -165,27 +159,7 @@ class test_urllib():
                            path_to_model=os.path.join(models_dir, 'en-pos-maxent.bin'))
         phrase = str(content)
         sentence = tt.tag(phrase)
-              
-        cp = OpenNERChunker(path_to_bin=os.path.join(opennlp_dir, 'bin'),
-                            path_to_chunker=os.path.join(models_dir,
-                                                         '{}-chunker.bin'.format(language)),
-                            path_to_ner_model=os.path.join(models_dir,
-                                                           '{}-ner-person.bin'.format(language)))
-
-        tree = cp.parse(sentence)
-
-##        for st in tree.subtrees(filter=lambda x: x.label() == "NP" or x.label() == 'NNP'):
-##            leaves = st.leaves()
-##            if isinstance(leaves, list):
-##                for leaf in leaves:
-##                    if isinstance(leaf, tuple):
-##                        if 'NNP' in leaf[1]:
-##                         names.append(leaf[0])
-
-        names = self.getValidNames(sentence)
-        print(names)
-        
-        return names
+        return self.getValidNames(sentence)
 
     def showGraph(self, list_):
         graph = self.constructGraph(list_)

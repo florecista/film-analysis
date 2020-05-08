@@ -5,9 +5,11 @@ import re
 import os
 import numpy as np
 
-from nltk_opennlp.chunkers import OpenNERChunker
 from nltk_opennlp.taggers import OpenNLPTagger
 import configparser
+import nltk
+from nltk.corpus import names
+nltk.download('names')
 
 class SplitChunk:
     def __init__(self, name, dialog, narrative):
@@ -100,6 +102,22 @@ class TextNameFinderImpl(Names):
         return names
 
 class OpenNLPNameFinderImpl(Names):
+    def getValidNames(self, sentence):
+        list_ = []
+        names_ = []
+        name_set = set(names.words())
+        for word, tag in sentence:
+            for h in name_set:
+                if word.upper() == h.upper():
+                    list_.append((word, tag))
+                    break
+
+        for el in list_:
+            if el[1] in ['NNP', 'NP']:
+                names_.append(el[0])
+
+        return names_
+
     def get_names(self, list_) -> list:
         names = []
 
@@ -124,23 +142,7 @@ class OpenNLPNameFinderImpl(Names):
                            path_to_model=os.path.join(models_dir, 'en-pos-maxent.bin'))
         phrase = str(content)
         sentence = tt.tag(phrase)
-        cp = OpenNERChunker(path_to_bin=os.path.join(opennlp_dir, 'bin'),
-                            path_to_chunker=os.path.join(models_dir,
-                                                         '{}-chunker.bin'.format(language)),
-                            path_to_ner_model=os.path.join(models_dir,
-                                                           '{}-ner-person.bin'.format(language)))
-
-        tree = cp.parse(sentence)
-
-        for st in tree.subtrees(filter=lambda x: x.label() == "NP" or x.label() == 'NNP'):
-            leaves = st.leaves()
-            if isinstance(leaves, list):
-                for leaf in leaves:
-                    if isinstance(leaf, tuple):
-                        if 'NNP' in leaf[1]:
-                            names.append(leaf[0])
-
-        return names
+        return self.getValidNames(sentence)
 
 class TextNameFinder(NameFinder):
 
