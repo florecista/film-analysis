@@ -64,11 +64,16 @@ class test_urllib():
         return True
 
     def constructGraph(self, list_):
+        names = self.getNames(list_)
+        uniqueListOfNames = self.getNamesUnique(names)
+        # 5. Get list of names from OpenNLP, based off previous parsed list of names
+        namesFromOpenNLP = self.opennlp_test(self.getNamesAsString(names))
+        uniqueListOfNamesFromOpenNLP = self.getNamesUnique(namesFromOpenNLP)
+        
         G = nx.Graph()
-
         previous = ""
         for splitchunk in list_:
-            if not self.isValidName(splitchunk.name):
+            if not self.isValidName(splitchunk.name) or splitchunk.name not in uniqueListOfNamesFromOpenNLP:
                 previous = ""
                 continue
             current = splitchunk.name
