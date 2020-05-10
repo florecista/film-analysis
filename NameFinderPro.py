@@ -171,7 +171,16 @@ class test_urllib():
         nx.spring_layout(graph, k=0.15, iterations=20)
 
         plt.figure(3, figsize=(12, 8))
-        nx.draw_networkx(graph)
+
+        labels = {}
+        for k in graph.nodes():
+            labels[k] = str(k)
+        circPos = nx.circular_layout(graph)
+        pos_attrs = {}
+        for node, coords in circPos.items():
+            pos_attrs[node] = (coords[0] + 0.1 * (-1) * np.sign(coords[0]), coords[1] + 0.1 * (-1) * np.sign(coords[1]))
+        nx.draw_networkx_labels(graph, pos=circPos, labels=labels)
+        nx.draw(graph, pos=pos_attrs)
 
         plt.show()
 
