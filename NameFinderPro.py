@@ -7,12 +7,18 @@ import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 
+from ClassifierBuilder import ClassifierBuilder
 from nltk_opennlp.taggers import OpenNLPTagger
 import configparser
 
 import nltk
 from nltk.corpus import names 
 nltk.download('names')
+
+from word_features import extract
+
+import pickle
+import sys
 
 class SplitChunk:
     def __init__(self, name, dialog, narrative):
@@ -63,10 +69,8 @@ class test_urllib():
 
         return True
 
-    def constructGraph(self, list_):
+    def constructGraph(self, list_, classifier):
         names = self.getNames(list_)
-        uniqueListOfNames = self.getNamesUnique(names)
-        # 5. Get list of names from OpenNLP, based off previous parsed list of names
         namesFromOpenNLP = self.opennlp_test(self.getNamesAsString(names))
         uniqueListOfNamesFromOpenNLP = self.getNamesUnique(namesFromOpenNLP)
         
@@ -80,10 +84,18 @@ class test_urllib():
             if previous != "" and previous != current:
 
                 # analyze relationship between previous and current
-                # sentiment = getSentiment(splitchunk.dialog)
-                # G.add_edge(previous, current, sentiment)
+                sentiment = classifier.getSentiment(splitchunk.dialog)
 
-                G.add_edge(previous, current)
+                # not sure if this is great
+                if(sentiment == 'pos'):
+                    sentimentDouble = 1.0
+                    color = 'b'
+                else:
+                    sentimentDouble = 0.0
+                    color = 'r'
+
+                G.add_edge(previous, current, color=color, weight=sentimentDouble)
+
             previous = current
 
         return G
@@ -167,11 +179,15 @@ class test_urllib():
         return self.getValidNames(sentence)
 
     def showGraph(self, list_):
-        graph = self.constructGraph(list_)
-        nx.spring_layout(graph, k=0.15, iterations=20)
+        classifier = ClassifierBuilder()
 
+        graph = self.constructGraph(list_, classifier)
+        #nx.spring_layout(graph, k=0.15, iterations=20)
+
+        # increase the size of this graph
         plt.figure(3, figsize=(12, 8))
 
+        # re-position labels
         labels = {}
         for k in graph.nodes():
             labels[k] = str(k)
@@ -180,9 +196,24 @@ class test_urllib():
         for node, coords in circPos.items():
             pos_attrs[node] = (coords[0] + 0.1 * (-1) * np.sign(coords[0]), coords[1] + 0.1 * (-1) * np.sign(coords[1]))
         nx.draw_networkx_labels(graph, pos=circPos, labels=labels)
-        nx.draw(graph, pos=pos_attrs)
+
+        # color edges
+        edges = graph.edges()
+        colors = [graph[u][v]['color'] for u, v in edges]
+        weights = [graph[u][v]['weight'] for u, v in edges]
+        nx.draw(graph, pos=pos_attrs, edges=edges, edge_color=colors, width=weights)
 
         plt.show()
+
+    def loadClassifier(self):
+        try:
+            f = open('classifier.pickle', 'rb')
+        except FileNotFoundError:
+            print('Classifier not found')
+            exit()
+
+        classifier = pickle.load(f)
+        f.close()
 
 def main():
     app = test_urllib()
@@ -197,21 +228,24 @@ def main():
     # 3. Parse HTML for list of Chunks
     list_ = app.parse(strippedcontent)
 
-    # 4. Get list of names from Chunks
+    # 4. Load Classifier
+    app.loadClassifier()
+
+    # 5. Get list of names from Chunks
     print('Text Parsing for names')
     names = app.getNames(list_)
     print('#1 - ' + str(len(names)))
     uniqueListOfNames = app.getNamesUnique(names)
     print('#2 - ' + str(len(uniqueListOfNames)))
 
-    # 5. Get list of names from OpenNLP, based off previous parsed list of names
+    # 6. Get list of names from OpenNLP, based off previous parsed list of names
     print('OpenNLP Parsing for names')
     namesFromOpenNLP = app.opennlp_test(app.getNamesAsString(names))
     print('#3 - ' + str(len(namesFromOpenNLP)))
     uniqueListOfNamesFromOpenNLP = app.getNamesUnique(namesFromOpenNLP)
     print('#4 - ' + str(len(uniqueListOfNamesFromOpenNLP)))
 
-    # 6. Add names to graph for visualization
+    # 7. Add names to graph for visualization
     app.showGraph(list_)
 
 if __name__ == "__main__":
