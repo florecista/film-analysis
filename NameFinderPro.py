@@ -50,7 +50,9 @@ class test_urllib():
         return soup
 
     def read_html_from_file(self):
-        soup = BeautifulSoup(open("Platoon.html"), "lxml")
+        page = open("Platoon.html")
+        soup = BeautifulSoup(page.read(), "lxml")
+        page.close()
         return soup
 
     def stripHTML(self, soup):
