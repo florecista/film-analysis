@@ -51,7 +51,7 @@ class test_urllib():
 
     def read_html_from_file(self):
         page = open("Platoon.html")
-        soup = BeautifulSoup(page.read(), "lxml")
+        soup = BeautifulSoup(page.read(), "html.parser")
         page.close()
         return soup
 
