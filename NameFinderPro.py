@@ -1,4 +1,3 @@
-
 import urllib.request
 import os
 from bs4 import BeautifulSoup
@@ -77,6 +76,7 @@ class test_urllib():
         uniqueListOfNamesFromOpenNLP = self.getNamesUnique(namesFromOpenNLP)
         
         G = nx.Graph()
+        dict_ = {}
         previous = ""
         for splitchunk in list_:
             if not self.isValidName(splitchunk.name) or splitchunk.name not in uniqueListOfNamesFromOpenNLP:
@@ -87,15 +87,47 @@ class test_urllib():
 
                 # analyze relationship between previous and current
                 sentiment = classifier.getSentiment(splitchunk.dialog)
+                
 
                 # not sure if this is great
                 if(sentiment == 'pos'):
                     sentimentDouble = 1.0
-                    color = 'b'
                 else:
-                    sentimentDouble = 0.0
-                    color = 'r'
+                    sentimentDouble = -1.0
 
+                #Create a dictionary to sum the sentimentDouble of the same two persons
+                dict_key  = previous + "&" + current
+                dict_key_inv = current + "&" + previous
+                inv_ = False
+                
+                if dict_key not in dict_.keys():
+                    if dict_key_inv in dict_.keys():
+                        inv_ = True
+                        dict_[dict_key_inv] = dict_[dict_key_inv] + sentimentDouble
+                    else:
+                        dict_[dict_key] = sentimentDouble
+                    
+                else:
+                    dict_[dict_key] = dict_[dict_key] + sentimentDouble
+
+                if inv_:
+                    sentimentDouble = dict_[dict_key_inv]
+                    previous = dict_key_inv.split("&")[1]
+                    current = dict_key_inv.split("&")[0]
+                else:
+                    sentimentDouble = dict_[dict_key]
+                    previous = dict_key_inv.split("&")[0]
+                    current = dict_key_inv.split("&")[1]
+
+                #Add color to edges
+                if sentimentDouble <0:
+                    color = 'r'
+                elif sentimentDouble >0:
+                    color = 'b'
+                #Add neutral case
+                else:
+                    color = 'g'
+    
                 G.add_edge(previous, current, color=color, weight=sentimentDouble)
 
             previous = current
@@ -137,25 +169,29 @@ class test_urllib():
     
     def parse(self, content):
         list_ = []
+        content = content.replace("<b>\t...\n</b>","\n")
         chunks = content.split("<b>")
         chunks = chunks[1:]
         
+        
         for chunk in chunks:
-            list_b = chunk.split("</b>")        
+            #print(chunk)
+            list_b = chunk.split("</b>",1)        
             if len(list_b)==1:
                 name = list_b[0].replace("\n",'').strip()
                 dialog = ""
                 narrative = ""
-            elif len(list_b)==2:        
+            elif len(list_b)==2:
                 name = list_b[0].replace("\n",'').strip()
-                if (len(list_b[1].split("\n\n"))==2):
-                    list_b_n = list_b[1].split("\n\n")
+                if (len(list_b[1].split("\n\n",1))==1):
+                    dialog = list_b[1].replace("\n",'').strip()
+                    narrative = ""
+                    
+                else:
+                    list_b_n = list_b[1].split("\n\n",1)
                     dialog = list_b_n[0].replace("\n",'').strip()
                     narrative = list_b_n[1].replace("\n",'').strip()
-                else:
-                    dialog = list_b[0].replace("\n",'').strip()
-                    narrative = ""
-
+                    
             # ugly but needed
             if " " in name and "(" in name:
                 tokens = name.split()
@@ -231,7 +267,7 @@ def main():
     list_ = app.parse(strippedcontent)
 
     # 4. Load Classifier
-    app.loadClassifier()
+    #app.loadClassifier()
 
     # 5. Get list of names from Chunks
     print('Text Parsing for names')
