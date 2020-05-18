@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import re
 import networkx as nx
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 
 from ClassifierBuilder import ClassifierBuilder
@@ -14,10 +15,7 @@ import nltk
 from nltk.corpus import names 
 nltk.download('names')
 
-from word_features import extract
-
 import pickle
-import sys
 
 class SplitChunk:
     def __init__(self, name, dialog, narrative):
@@ -70,23 +68,25 @@ class test_urllib():
 
         return True
 
-    def constructGraph(self, list_, classifier):
-        names = self.getNames(list_)
+    def constructGraph(self, dataFrame, classifier):
+        #get names from dataframe
+        names = dataFrame["name"]
         namesFromOpenNLP = self.opennlp_test(self.getNamesAsString(names))
         uniqueListOfNamesFromOpenNLP = self.getNamesUnique(namesFromOpenNLP)
         
         G = nx.Graph()
         dict_ = {}
         previous = ""
-        for splitchunk in list_:
-            if not self.isValidName(splitchunk.name) or splitchunk.name not in uniqueListOfNamesFromOpenNLP:
+        for index,splitchunk in dataFrame.iterrows():
+            if not self.isValidName(splitchunk["name"]) or splitchunk["name"] not in uniqueListOfNamesFromOpenNLP:
                 previous = ""
                 continue
-            current = splitchunk.name
+            #get nameq from dataframe row
+            current = splitchunk["name"]
             if previous != "" and previous != current:
 
                 # analyze relationship between previous and current
-                sentiment = classifier.getSentiment(splitchunk.dialog)
+                sentiment = classifier.getSentiment(splitchunk["dialog"])
                 
 
                 # not sure if this is great
@@ -134,12 +134,12 @@ class test_urllib():
 
         return G
 
-    def getNames(self, list_):
+    def getNames(self, dataFrame):
         names = []
-        for splitchunk in list_:
-            if not self.isValidName(splitchunk.name):
+        for index,splitchunk in dataFrame.iterrows():
+            if not self.isValidName(splitchunk["name"]):
                 continue
-            names.append(splitchunk.name)
+            names.append(splitchunk["name"])
 
         return names
 
@@ -201,6 +201,15 @@ class test_urllib():
             list_.append(new_splitchunk)
         return list_
 
+    def getDataFrame(self, list_):
+        data = []
+        classifier = ClassifierBuilder()
+        for splitchunk in list_:
+            new_row = [splitchunk.name,splitchunk.dialog,splitchunk.narrative,classifier.getSentiment(splitchunk.dialog)]
+            data.append(new_row)
+        dataframe = pd.DataFrame(data, columns = ['name', 'dialog','narrative','Sentiment'])
+        return dataframe
+
     def opennlp_test(self, content):
         config = configparser.ConfigParser()
         config.read('settings.ini')
@@ -216,10 +225,10 @@ class test_urllib():
         sentence = tt.tag(phrase)
         return self.getValidNames(sentence)
 
-    def showGraph(self, list_):
+    def showGraph(self, dataFrame):
         classifier = ClassifierBuilder()
 
-        graph = self.constructGraph(list_, classifier)
+        graph = self.constructGraph(dataFrame, classifier)
         #nx.spring_layout(graph, k=0.15, iterations=20)
 
         # increase the size of this graph
@@ -266,12 +275,13 @@ def main():
     # 3. Parse HTML for list of Chunks
     list_ = app.parse(strippedcontent)
 
-    # 4. Load Classifier
-    #app.loadClassifier()
-
+    # 4. Get DataFrame
+    dataFrame = app.getDataFrame(list_,)
+    
     # 5. Get list of names from Chunks
     print('Text Parsing for names')
-    names = app.getNames(list_)
+    names = app.getNames(dataFrame)
+    
     print('#1 - ' + str(len(names)))
     uniqueListOfNames = app.getNamesUnique(names)
     print('#2 - ' + str(len(uniqueListOfNames)))
@@ -283,8 +293,9 @@ def main():
     uniqueListOfNamesFromOpenNLP = app.getNamesUnique(namesFromOpenNLP)
     print('#4 - ' + str(len(uniqueListOfNamesFromOpenNLP)))
 
+    
     # 7. Add names to graph for visualization
-    app.showGraph(list_)
+    app.showGraph(dataFrame)
 
 if __name__ == "__main__":
     main()
