@@ -6,6 +6,7 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 
 from ClassifierBuilder import ClassifierBuilder
 from nltk_opennlp.taggers import OpenNLPTagger
@@ -68,13 +69,17 @@ class test_urllib():
 
         return True
 
-    def constructGraph(self, dataFrame, classifier):
+    def constructGraph(self, dataFrame, classifier, isDirected):
         #get names from dataframe
         names = dataFrame["name"]
         namesFromOpenNLP = self.opennlp_test(self.getNamesAsString(names))
         uniqueListOfNamesFromOpenNLP = self.getNamesUnique(namesFromOpenNLP)
-        
-        G = nx.Graph()
+
+        if(isDirected) :
+            G = nx.DiGraph
+        else:
+            G = nx.Graph()
+
         dict_ = {}
         previous = ""
         for index,splitchunk in dataFrame.iterrows():
@@ -225,10 +230,28 @@ class test_urllib():
         sentence = tt.tag(phrase)
         return self.getValidNames(sentence)
 
-    def showGraph(self, dataFrame):
+    def drawGraph(self, G, pos, measures, measure_name):
+        nodes = nx.draw_networkx_nodes(G, pos, node_size=250, cmap=plt.cm.plasma, node_color=list(measures.values()),
+                                             nodelist=measures.keys())
+        nodes.set_norm(mcolors.SymLogNorm(linthresh=0.01, linscale=1))
+        edges = nx.draw_networkx_edges(G, pos)
+        plt.title(measure_name)
+        plt.colorbar(nodes)
+        plt.axis('off')
+        plt.show()
+
+    def buildUndirectedGraph(self, dataFrame):
+        classifier = ClassifierBuilder()
+        G = self.constructGraph(dataFrame, classifier, False)
+        pos = nx.spring_layout(G)
+        measures = nx.degree_centrality(G)
+        self.drawGraph(G,pos, measures, 'Degree Centrality')
+
+    def buildUndirectedGraphWithNodeLabels(self, dataFrame):
         classifier = ClassifierBuilder()
 
-        graph = self.constructGraph(dataFrame, classifier)
+        graph = self.constructGraph(dataFrame, classifier, False)
+        measures = nx.degree_centrality(graph)
         #nx.spring_layout(graph, k=0.15, iterations=20)
 
         # increase the size of this graph
@@ -254,7 +277,7 @@ class test_urllib():
         node_size = [v * 100 for v in d.values()]
 
         nx.draw_networkx_edges(graph, pos=pos_attrs, edges=edges, edge_color=colors, width=weights)
-        node_legend = nx.draw_networkx_nodes(graph, pos=pos_attrs, node_color=node_color, node_size=node_size)
+        node_legend = nx.draw_networkx_nodes(graph, pos=pos_attrs, node_color=list(measures.values()), nodelist=measures.keys(), node_size=node_size)
 
         plt.colorbar(node_legend)
         plt.axis('off')
@@ -303,7 +326,8 @@ def main():
 
     
     # 7. Add names to graph for visualization
-    app.showGraph(dataFrame)
+    app.buildUndirectedGraphWithNodeLabels(dataFrame)
+    #app.buildUndirectedGraph(dataFrame)
 
 if __name__ == "__main__":
     main()
