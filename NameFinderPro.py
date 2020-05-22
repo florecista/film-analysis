@@ -248,8 +248,16 @@ class test_urllib():
         edges = graph.edges()
         colors = [graph[u][v]['color'] for u, v in edges]
         weights = [graph[u][v]['weight'] for u, v in edges]
-        nx.draw(graph, pos=pos_attrs, edges=edges, edge_color=colors, width=weights)
 
+        node_color = [graph.degree(v) for v in graph]
+        d = dict(graph.degree())
+        node_size = [v * 100 for v in d.values()]
+
+        nx.draw_networkx_edges(graph, pos=pos_attrs, edges=edges, edge_color=colors, width=weights)
+        node_legend = nx.draw_networkx_nodes(graph, pos=pos_attrs, node_color=node_color, node_size=node_size)
+
+        plt.colorbar(node_legend)
+        plt.axis('off')
         plt.show()
 
     def loadClassifier(self):
