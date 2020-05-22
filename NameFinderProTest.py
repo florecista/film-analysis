@@ -10,14 +10,15 @@ class NameFinderProTest(unittest.TestCase):
         strippedcontent = app.stripHTML(soup)
         list = app.parse(strippedcontent)
 
-        self.assertEqual(len(list), 908, "Should be 908")
+        self.assertEqual(len(list), 904, "Should be 904")
 
     def test_get_names_from_scripts_chunks(self):
         app = test_urllib()
         soup = app.read_html_from_file()
         strippedcontent = app.stripHTML(soup)
         list = app.parse(strippedcontent)
-        names = app.getNames(list)
+        dataFrame = app.getDataFrame(list, )
+        names = app.getNames(dataFrame)
         uniqueListOfNames = app.getNamesUnique(names)
 
         self.assertEqual(len(uniqueListOfNames), 73, "Should be 73")
@@ -27,7 +28,8 @@ class NameFinderProTest(unittest.TestCase):
         soup = app.read_html_from_file()
         strippedcontent = app.stripHTML(soup)
         list = app.parse(strippedcontent)
-        names = app.getNames(list)
+        dataFrame = app.getDataFrame(list, )
+        names = app.getNames(dataFrame)
         namesFromOpenNLP = app.opennlp_test(app.getNamesAsString(names))
         uniqueListOfNamesFromOpenNLP = app.getNamesUnique(namesFromOpenNLP)
 
