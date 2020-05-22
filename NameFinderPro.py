@@ -76,7 +76,7 @@ class test_urllib():
         uniqueListOfNamesFromOpenNLP = self.getNamesUnique(namesFromOpenNLP)
 
         if(isDirected) :
-            G = nx.DiGraph
+            G = nx.DiGraph()
         else:
             G = nx.Graph()
 
@@ -240,6 +240,13 @@ class test_urllib():
         plt.axis('off')
         plt.show()
 
+    def buildDirectedGraph(self, dataFrame):
+        classifier = ClassifierBuilder()
+        G = self.constructGraph(dataFrame, classifier, True)
+        pos = nx.spring_layout(G)
+        measures = nx.pagerank(G, alpha=0.85)
+        self.drawGraph(G,pos, measures, 'DiGraph PageRank')
+
     def buildUndirectedGraph(self, dataFrame):
         classifier = ClassifierBuilder()
         G = self.constructGraph(dataFrame, classifier, False)
@@ -326,8 +333,9 @@ def main():
 
     
     # 7. Add names to graph for visualization
-    app.buildUndirectedGraphWithNodeLabels(dataFrame)
+    #app.buildUndirectedGraphWithNodeLabels(dataFrame)
     #app.buildUndirectedGraph(dataFrame)
+    app.buildDirectedGraph(dataFrame)
 
 if __name__ == "__main__":
     main()
