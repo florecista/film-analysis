@@ -230,21 +230,28 @@ class test_urllib():
         sentence = tt.tag(phrase)
         return self.getValidNames(sentence)
 
-    def drawGraph(self, G, pos, measures, measure_name, showLabels):
-        nodes = nx.draw_networkx_nodes(G, pos, node_size=250, cmap=plt.cm.plasma, node_color=list(measures.values()),
-                                             nodelist=measures.keys())
-        nodes.set_norm(mcolors.SymLogNorm(linthresh=0.01, linscale=1))
-        edges = nx.draw_networkx_edges(G, pos)
-
+    def drawGraph(self, G, pos, measures, measure_name, showLabels, colorEdges):
         if(showLabels):
             labels = {}
             for k in G.nodes():
                 labels[k] = str(k)
-            pos_attrs = {}
-            for node, coords in pos.items():
-                pos_attrs[node] = (
-                coords[0] + 0.1 * (-1) * np.sign(coords[0]), coords[1] + 0.1 * (-1) * np.sign(coords[1]))
             nx.draw_networkx_labels(G, pos=pos, font_color='green', labels=labels)
+
+        pos_attrs = {}
+        for node, coords in pos.items():
+            pos_attrs[node] = (
+            coords[0] + 0.1 * (-1) * np.sign(coords[0]), coords[1] + 0.1 * (-1) * np.sign(coords[1]))
+
+        nodes = nx.draw_networkx_nodes(G, pos_attrs, node_size=250, cmap=plt.cm.plasma, node_color=list(measures.values()),
+                                             nodelist=measures.keys())
+        nodes.set_norm(mcolors.SymLogNorm(linthresh=0.01, linscale=1))
+
+        if(colorEdges):
+            colorEdges = G.edges()
+            colors = [G[u][v]['color'] for u, v in colorEdges]
+            edges = nx.draw_networkx_edges(G, pos_attrs, edges=colorEdges, edge_color=colors)
+        else:
+            edges = nx.draw_networkx_edges(G, pos_attrs)
 
         plt.title(measure_name)
         plt.colorbar(nodes)
@@ -256,50 +263,21 @@ class test_urllib():
         G = self.constructGraph(dataFrame, classifier, True)
         pos = nx.spring_layout(G)
         measures = nx.pagerank(G, alpha=0.85)
-        self.drawGraph(G,pos, measures, 'DiGraph PageRank', True)
+        showLabels = True
+        colorEdges = True
+        self.drawGraph(G,pos, measures, 'DiGraph PageRank', showLabels, colorEdges)
 
     def buildUndirectedGraph(self, dataFrame):
         classifier = ClassifierBuilder()
         G = self.constructGraph(dataFrame, classifier, False)
-        pos = nx.spring_layout(G)
-        measures = nx.degree_centrality(G)
-        self.drawGraph(G,pos, measures, 'Degree Centrality', False)
 
-    def buildUndirectedGraphWithNodeLabels(self, dataFrame):
-        classifier = ClassifierBuilder()
-
-        graph = self.constructGraph(dataFrame, classifier, False)
-        measures = nx.degree_centrality(graph)
-        #nx.spring_layout(graph, k=0.15, iterations=20)
-
-        # increase the size of this graph
+        pos = nx.circular_layout(G)
         plt.figure(3, figsize=(12, 8))
 
-        # re-position labels
-        labels = {}
-        for k in graph.nodes():
-            labels[k] = str(k)
-        circPos = nx.circular_layout(graph)
-        pos_attrs = {}
-        for node, coords in circPos.items():
-            pos_attrs[node] = (coords[0] + 0.1 * (-1) * np.sign(coords[0]), coords[1] + 0.1 * (-1) * np.sign(coords[1]))
-        nx.draw_networkx_labels(graph, pos=circPos, labels=labels)
-
-        # color edges
-        edges = graph.edges()
-        colors = [graph[u][v]['color'] for u, v in edges]
-        weights = [graph[u][v]['weight'] for u, v in edges]
-
-        node_color = [graph.degree(v) for v in graph]
-        d = dict(graph.degree())
-        node_size = [v * 100 for v in d.values()]
-
-        nx.draw_networkx_edges(graph, pos=pos_attrs, edges=edges, edge_color=colors, width=weights)
-        node_legend = nx.draw_networkx_nodes(graph, pos=pos_attrs, node_color=list(measures.values()), nodelist=measures.keys(), node_size=node_size)
-
-        plt.colorbar(node_legend)
-        plt.axis('off')
-        plt.show()
+        measures = nx.degree_centrality(G)
+        showLabels = True # Only show labels for Circuler Layout
+        colorEdges = False
+        self.drawGraph(G,pos, measures, 'Degree Centrality', showLabels, colorEdges)
 
     def loadClassifier(self):
         try:
@@ -346,7 +324,7 @@ def main():
     # 7. Add names to graph for visualization
     #app.buildUndirectedGraphWithNodeLabels(dataFrame)
     #app.buildUndirectedGraph(dataFrame)
-    app.buildDirectedGraph(dataFrame)
+    app.buildUndirectedGraph(dataFrame)
 
 if __name__ == "__main__":
     main()
