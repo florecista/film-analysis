@@ -230,11 +230,22 @@ class test_urllib():
         sentence = tt.tag(phrase)
         return self.getValidNames(sentence)
 
-    def drawGraph(self, G, pos, measures, measure_name):
+    def drawGraph(self, G, pos, measures, measure_name, showLabels):
         nodes = nx.draw_networkx_nodes(G, pos, node_size=250, cmap=plt.cm.plasma, node_color=list(measures.values()),
                                              nodelist=measures.keys())
         nodes.set_norm(mcolors.SymLogNorm(linthresh=0.01, linscale=1))
         edges = nx.draw_networkx_edges(G, pos)
+
+        if(showLabels):
+            labels = {}
+            for k in G.nodes():
+                labels[k] = str(k)
+            pos_attrs = {}
+            for node, coords in pos.items():
+                pos_attrs[node] = (
+                coords[0] + 0.1 * (-1) * np.sign(coords[0]), coords[1] + 0.1 * (-1) * np.sign(coords[1]))
+            nx.draw_networkx_labels(G, pos=pos, font_color='green', labels=labels)
+
         plt.title(measure_name)
         plt.colorbar(nodes)
         plt.axis('off')
@@ -245,14 +256,14 @@ class test_urllib():
         G = self.constructGraph(dataFrame, classifier, True)
         pos = nx.spring_layout(G)
         measures = nx.pagerank(G, alpha=0.85)
-        self.drawGraph(G,pos, measures, 'DiGraph PageRank')
+        self.drawGraph(G,pos, measures, 'DiGraph PageRank', True)
 
     def buildUndirectedGraph(self, dataFrame):
         classifier = ClassifierBuilder()
         G = self.constructGraph(dataFrame, classifier, False)
         pos = nx.spring_layout(G)
         measures = nx.degree_centrality(G)
-        self.drawGraph(G,pos, measures, 'Degree Centrality')
+        self.drawGraph(G,pos, measures, 'Degree Centrality', False)
 
     def buildUndirectedGraphWithNodeLabels(self, dataFrame):
         classifier = ClassifierBuilder()
