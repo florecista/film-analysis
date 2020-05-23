@@ -12,6 +12,18 @@ class NameFinderProTest(unittest.TestCase):
 
         self.assertEqual(len(list), 904, "Should be 904")
 
+    def test_get_chris_from_scripts_chunks(self):
+        app = test_urllib()
+        soup = app.read_html_from_file()
+        strippedcontent = app.stripHTML(soup)
+        list = app.parse(strippedcontent)
+        number = 0;
+        for splitchunk in list:
+            if splitchunk.name == 'CHRIS':
+                number = number + 1
+
+        self.assertEqual(number, 117, "Instances of Chris in script should be 117")
+
     def test_get_dataFrame_from_scripts_chunks(self):
         app = test_urllib()
         soup = app.read_html_from_file()
@@ -20,6 +32,16 @@ class NameFinderProTest(unittest.TestCase):
         dataFrame = app.getDataFrame(list, )
 
         self.assertEqual(len(dataFrame), 904, "Should be 904 rows")
+
+    def test_get_chris_from_dataFrame(self):
+        app = test_urllib()
+        soup = app.read_html_from_file()
+        strippedcontent = app.stripHTML(soup)
+        list = app.parse(strippedcontent)
+        dataFrame = app.getDataFrame(list, )
+        chris = dataFrame.loc[dataFrame['name'] == 'CHRIS']
+
+        self.assertEqual(len(chris), 117, "Instances of Chris in dataframe should be 117")
 
     def test_get_main_characters_from_dataFrame(self):
         app = test_urllib()
