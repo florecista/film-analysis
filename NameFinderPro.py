@@ -69,7 +69,7 @@ class test_urllib():
 
         return True
 
-    def constructGraph(self, dataFrame, classifier, isDirected):
+    def constructGraph(self, dataFrame, isDirected):
         #get names from dataframe
         names = dataFrame["name"]
         namesFromOpenNLP = self.opennlp_test(self.getNamesAsString(names))
@@ -90,9 +90,7 @@ class test_urllib():
             current = splitchunk["name"]
             if previous != "" and previous != current:
 
-                # analyze relationship between previous and current
-                sentiment = classifier.getSentiment(splitchunk["dialog"])
-                
+                sentiment = splitchunk["Sentiment"]
 
                 # not sure if this is great
                 if(sentiment == 'pos'):
@@ -259,8 +257,7 @@ class test_urllib():
         plt.show()
 
     def buildDirectedGraph(self, dataFrame):
-        classifier = ClassifierBuilder()
-        G = self.constructGraph(dataFrame, classifier, True)
+        G = self.constructGraph(dataFrame, True)
         pos = nx.spring_layout(G)
         measures = nx.pagerank(G, alpha=0.85)
         showLabels = True
@@ -268,8 +265,7 @@ class test_urllib():
         self.drawGraph(G,pos, measures, 'DiGraph PageRank', showLabels, colorEdges)
 
     def buildUndirectedGraph(self, dataFrame):
-        classifier = ClassifierBuilder()
-        G = self.constructGraph(dataFrame, classifier, False)
+        G = self.constructGraph(dataFrame, False)
 
         pos = nx.circular_layout(G)
         plt.figure(3, figsize=(12, 8))
@@ -278,16 +274,16 @@ class test_urllib():
         showLabels = True # Only show labels for Circuler Layout
         colorEdges = False
         self.drawGraph(G,pos, measures, 'Degree Centrality', showLabels, colorEdges)
-
-    def loadClassifier(self):
-        try:
-            f = open('classifier.pickle', 'rb')
-        except FileNotFoundError:
-            print('Classifier not found')
-            exit()
-
-        classifier = pickle.load(f)
-        f.close()
+    #
+    # def loadClassifier(self):
+    #     try:
+    #         f = open('classifier.pickle', 'rb')
+    #     except FileNotFoundError:
+    #         print('Classifier not found')
+    #         exit()
+    #
+    #     classifier = pickle.load(f)
+    #     f.close()
 
 def main():
     app = test_urllib()
@@ -304,24 +300,8 @@ def main():
 
     # 4. Get DataFrame
     dataFrame = app.getDataFrame(list_,)
-    
-    # 5. Get list of names from Chunks
-    print('Text Parsing for names')
-    names = app.getNames(dataFrame)
-    
-    print('#1 - ' + str(len(names)))
-    uniqueListOfNames = app.getNamesUnique(names)
-    print('#2 - ' + str(len(uniqueListOfNames)))
 
-    # 6. Get list of names from OpenNLP, based off previous parsed list of names
-    print('OpenNLP Parsing for names')
-    namesFromOpenNLP = app.opennlp_test(app.getNamesAsString(names))
-    print('#3 - ' + str(len(namesFromOpenNLP)))
-    uniqueListOfNamesFromOpenNLP = app.getNamesUnique(namesFromOpenNLP)
-    print('#4 - ' + str(len(uniqueListOfNamesFromOpenNLP)))
-
-    
-    # 7. Add names to graph for visualization
+    # 5. Add names to graph for visualization
     #app.buildUndirectedGraphWithNodeLabels(dataFrame)
     #app.buildUndirectedGraph(dataFrame)
     app.buildUndirectedGraph(dataFrame)
